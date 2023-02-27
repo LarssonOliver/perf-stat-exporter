@@ -3,17 +3,16 @@ package perf
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os/exec"
 	"strconv"
 	"strings"
 )
 
-const fieldSeparator = ","
+const fieldSeparator = ";"
 
 type PerfStats struct {
 	Pid               int
-	TimeoutMs           uint
+	TimeoutMs         uint
 	TaskClockMilliSec float64
 	ContextSwitches   uint64
 	CpuMigrations     uint64
@@ -57,11 +56,13 @@ func PerfStatProcess(pid int, timeoutMs uint) (*PerfStats, error) {
 		return nil, err
 	}
 
-    perf := parsePerfStatOutput(stderr.String())
-    perf.TimeoutMs = timeoutMs
-    perf.Pid = pid
+    fmt.Println(stderr.String())
 
-    return perf, nil
+	perf := parsePerfStatOutput(stderr.String())
+	perf.TimeoutMs = timeoutMs
+	perf.Pid = pid
+
+	return perf, nil
 }
 
 func parsePerfStatOutput(output string) *PerfStats {
@@ -70,9 +71,9 @@ func parsePerfStatOutput(output string) *PerfStats {
 	result := &PerfStats{}
 
 	for _, line := range lines {
-        if line == "" {
-            continue
-        }
+		if line == "" {
+			continue
+		}
 
 		fields := strings.Split(line, fieldSeparator)
 
@@ -109,5 +110,5 @@ func parsePerfStatOutput(output string) *PerfStats {
 		}
 	}
 
-	return result, nil
+	return result
 }

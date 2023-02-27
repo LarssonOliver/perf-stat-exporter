@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/larssonoliver/perf-stat-exporter/pkg/perf"
@@ -20,15 +19,18 @@ type Exporter struct {
 	mux *http.ServeMux
 
 	registry *prometheus.Registry
+
+	pids []int
 }
 
-func NewPerfExporter(registry *prometheus.Registry) (*Exporter, error) {
+func NewPerfExporter(registry *prometheus.Registry, pid ...int) (*Exporter, error) {
 	if registry == nil {
 		return nil, errors.New("Parameter 'registry' required.")
 	}
 
 	exporter := &Exporter{
 		registry: registry,
+		pids:     pid,
 	}
 
 	exporter.totalScrapes = prometheus.NewCounter(prometheus.CounterOpts{
@@ -58,12 +60,13 @@ func (exporter *Exporter) Collect(metricsChan chan<- prometheus.Metric) {
 	exporter.totalScrapes.Inc()
 	metricsChan <- exporter.totalScrapes
 
-	stats, err := perf.PerfStatProcess(os.Getpid(), 100)
-	if err != nil {
-        fmt.Printf("Error occurred while collecting perf stat metrics: %v", err)
+	for _, pid := range exporter.pids {
+		stats, err := perf.PerfStatProcess(pid, 1000)
+		if err != nil {
+			fmt.Printf("Error occurred while collecting perf stat metrics: %v", err)
+		}
+        fmt.Println(stats)
 	}
-
-    fmt.Println(stats)
 }
 
 func (exporter *Exporter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
