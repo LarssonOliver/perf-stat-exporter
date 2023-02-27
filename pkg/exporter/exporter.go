@@ -2,9 +2,12 @@ package exporter
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"sync"
 
+	"github.com/larssonoliver/perf-stat-exporter/pkg/perf"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -17,11 +20,6 @@ type Exporter struct {
 	mux *http.ServeMux
 
 	registry *prometheus.Registry
-}
-
-// ServeHTTP implements http.Handler
-func (exporter *Exporter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	exporter.mux.ServeHTTP(writer, request)
 }
 
 func NewPerfExporter(registry *prometheus.Registry) (*Exporter, error) {
@@ -54,10 +52,20 @@ func (exporter *Exporter) Describe(descChan chan<- *prometheus.Desc) {
 }
 
 func (exporter *Exporter) Collect(metricsChan chan<- prometheus.Metric) {
-    exporter.Lock()
-    defer exporter.Unlock()
+	exporter.Lock()
+	defer exporter.Unlock()
 
-    exporter.totalScrapes.Inc()
-
+	exporter.totalScrapes.Inc()
 	metricsChan <- exporter.totalScrapes
+
+	stats, err := perf.PerfStatProcess(os.Getpid(), 100)
+	if err != nil {
+        fmt.Printf("Error occurred while collecting perf stat metrics: %v", err)
+	}
+
+    fmt.Println(stats)
+}
+
+func (exporter *Exporter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	exporter.mux.ServeHTTP(writer, request)
 }

@@ -12,5 +12,6 @@ func main() {
 	registry := prometheus.NewRegistry()
     exporter, _ := exporter.NewPerfExporter(registry)
 
+    log.Println("Serving metrics at :8080/metrics")
 	log.Fatalln(http.ListenAndServe(":8080", exporter))
 }
