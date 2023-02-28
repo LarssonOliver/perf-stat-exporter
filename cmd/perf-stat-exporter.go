@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	pid = flag.Int("pid", 0, "PID of process to observe.")
+	pid             = flag.Int("pid", 0, "PID of process to observe.")
+	parseIntervalMs = flag.Uint("interval", 10_000, "perf-stat scraping interval in ms.")
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 	}
 
 	registry := prometheus.NewRegistry()
-	exporter, _ := exporter.NewPerfExporter(registry, *pid)
+	exporter, _ := exporter.NewPerfExporter(registry, uint(*parseIntervalMs), *pid)
 
 	fmt.Println("Serving metrics at :8080/metrics")
 	fmt.Println(http.ListenAndServe(":8080", exporter))

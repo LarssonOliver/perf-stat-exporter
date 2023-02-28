@@ -11,9 +11,8 @@ import (
 )
 
 const fieldSeparator = ";"
-const parseIntervalMs = 10 * 1000
 
-func (pf *PerfCollector) StartPerfStatProcessBlocking(pid int) error {
+func (pf *PerfCollector) StartPerfStatProcessBlocking(pid int, parseIntervalMs uint) error {
 	statFields := []string{
 		"task-clock",
 		"context-switches",

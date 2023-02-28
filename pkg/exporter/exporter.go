@@ -24,7 +24,7 @@ type Exporter struct {
 	perfCollector *perf.PerfCollector
 }
 
-func NewPerfExporter(registry *prometheus.Registry, pids ...int) (*Exporter, error) {
+func NewPerfExporter(registry *prometheus.Registry, parseIntervalMs uint,  pids ...int) (*Exporter, error) {
 	if registry == nil {
 		return nil, errors.New("Parameter 'registry' required.")
 	}
@@ -51,7 +51,7 @@ func NewPerfExporter(registry *prometheus.Registry, pids ...int) (*Exporter, err
 	exporter.registry.MustRegister(exporter.perfCollector)
 
 	for _, pid := range pids {
-		go exporter.perfCollector.StartPerfStatProcessBlocking(pid)
+		go exporter.perfCollector.StartPerfStatProcessBlocking(pid, parseIntervalMs)
 	}
 
 	return exporter, nil
