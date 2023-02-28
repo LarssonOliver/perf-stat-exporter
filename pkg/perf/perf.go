@@ -1,31 +1,19 @@
 package perf
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const fieldSeparator = ";"
+const parseIntervalMs = 10 * 1000
 
-type PerfStats struct {
-	Pid               int
-	TimeoutMs         uint
-	TaskClockMilliSec float64
-	ContextSwitches   uint64
-	CpuMigrations     uint64
-	PageFaults        uint64
-	CacheMisses       uint64
-	CacheReferences   uint64
-	Cycles            uint64
-	Instructions      uint64
-	Branches          uint64
-	BranchMisses      uint64
-}
-
-func PerfStatProcess(pid int, timeoutMs uint) (*PerfStats, error) {
+func (pf *PerfCollector) StartPerfStatProcessBlocking(pid int) error {
 	statFields := []string{
 		"task-clock",
 		"context-switches",
@@ -42,73 +30,71 @@ func PerfStatProcess(pid int, timeoutMs uint) (*PerfStats, error) {
 	args := []string{
 		"stat",
 		fmt.Sprintf("--pid=%d", pid),
-		fmt.Sprintf("--timeout=%d", timeoutMs),
 		fmt.Sprintf("--field-separator=%s", fieldSeparator),
+		fmt.Sprintf("--interval-print=%d", parseIntervalMs),
 		fmt.Sprintf("--event=%s", strings.Join(statFields, ",")),
 	}
 
 	cmd := exec.Command("perf", args...)
 
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		return nil, err
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
 	}
 
-    fmt.Println(stderr.String())
+	if err := cmd.Start(); err != nil {
+		return err
+	}
 
-	perf := parsePerfStatOutput(stderr.String())
-	perf.TimeoutMs = timeoutMs
-	perf.Pid = pid
+	scanner := bufio.NewScanner(stderr)
 
-	return perf, nil
+	for scanner.Scan() {
+		line := scanner.Text()
+		pf.parsePerfStatOutput(pid, line)
+	}
+
+	return nil
 }
 
-func parsePerfStatOutput(output string) *PerfStats {
-	lines := strings.Split(output, "\n")
+func (pf *PerfCollector) parsePerfStatOutput(pid int, perfOutputLine string) {
+	perfOutputLine = strings.TrimSpace(perfOutputLine)
 
-	result := &PerfStats{}
-
-	for _, line := range lines {
-		if line == "" {
-			continue
-		}
-
-		fields := strings.Split(line, fieldSeparator)
-
-		value, err := strconv.ParseUint(fields[0], 10, 0)
-		if err != nil {
-			value = 0
-		}
-
-		switch fields[2] {
-		case "task-clock":
-			fVal, err := strconv.ParseFloat(fields[0], 64)
-			if err != nil {
-				fVal = 0
-			}
-			result.TaskClockMilliSec = fVal
-		case "context-switches":
-			result.ContextSwitches = value
-		case "cpu-migrations":
-			result.CpuMigrations = value
-		case "page-faults":
-			result.PageFaults = value
-		case "cache-misses":
-			result.CacheMisses = value
-		case "cache-references":
-			result.CacheReferences = value
-		case "cycles":
-			result.Cycles = value
-		case "instructions":
-			result.Instructions = value
-		case "branches":
-			result.Branches = value
-		case "branch-misses":
-			result.BranchMisses = value
-		}
+	if perfOutputLine == "" {
+		return
 	}
 
-	return result
+	fields := strings.Split(perfOutputLine, fieldSeparator)
+
+	value, err := strconv.ParseFloat(fields[1], 64)
+	if err != nil {
+		value = 0
+	}
+
+	labels := prometheus.Labels{"pid": strconv.FormatInt(int64(pid), 10)}
+
+	pf.Lock()
+	defer pf.Unlock()
+
+	switch fields[3] {
+	case "task-clock":
+		pf.taskClockCounter.With(labels).Add(value)
+	case "context-switches":
+		pf.contextSwitchesCounter.With(labels).Add(value)
+	case "cpu-migrations":
+		pf.cpuMigrationsCounter.With(labels).Add(value)
+	case "page-faults":
+		pf.pageFaultCounter.With(labels).Add(value)
+	case "cache-misses":
+		pf.cacheMissesCounter.With(labels).Add(value)
+	case "cache-references":
+		pf.cacheReferencesCounter.With(labels).Add(value)
+	case "cycles":
+		pf.cyclesCounter.With(labels).Add(value)
+	case "instructions":
+		pf.instructionsCounter.With(labels).Add(value)
+	case "branches":
+		pf.branchesCounter.With(labels).Add(value)
+	case "branch-misses":
+		pf.branchMissesCounter.With(labels).Add(value)
+	}
 }

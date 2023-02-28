@@ -2,7 +2,6 @@ package exporter
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
 
@@ -21,20 +20,22 @@ type Exporter struct {
 	registry *prometheus.Registry
 
 	pids []int
+
+    perfCollector *perf.PerfCollector
 }
 
-func NewPerfExporter(registry *prometheus.Registry, pid ...int) (*Exporter, error) {
+func NewPerfExporter(registry *prometheus.Registry, pids ...int) (*Exporter, error) {
 	if registry == nil {
 		return nil, errors.New("Parameter 'registry' required.")
 	}
 
 	exporter := &Exporter{
-		registry: registry,
-		pids:     pid,
+		registry:  registry,
+		pids:      pids,
 	}
 
 	exporter.totalScrapes = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "perf",
+        Namespace: "perf",
 		Name:      "exporter_scrapes_total",
 		Help:      "Current total metric scrapes.",
 	})
@@ -45,6 +46,13 @@ func NewPerfExporter(registry *prometheus.Registry, pid ...int) (*Exporter, erro
 	exporter.mux.Handle("/metrics", promhttp.HandlerFor(
 		exporter.registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError},
 	))
+
+    exporter.perfCollector = perf.NewPerfCollector()
+    exporter.registry.MustRegister(exporter.perfCollector)
+    
+    for _, pid := range pids {
+        go exporter.perfCollector.StartPerfStatProcessBlocking(pid)
+    }
 
 	return exporter, nil
 }
@@ -59,14 +67,6 @@ func (exporter *Exporter) Collect(metricsChan chan<- prometheus.Metric) {
 
 	exporter.totalScrapes.Inc()
 	metricsChan <- exporter.totalScrapes
-
-	for _, pid := range exporter.pids {
-		stats, err := perf.PerfStatProcess(pid, 1000)
-		if err != nil {
-			fmt.Printf("Error occurred while collecting perf stat metrics: %v", err)
-		}
-        fmt.Println(stats)
-	}
 }
 
 func (exporter *Exporter) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
