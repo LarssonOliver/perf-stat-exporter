@@ -21,7 +21,7 @@ type Exporter struct {
 
 	pids []int
 
-    perfCollector *perf.PerfCollector
+	perfCollector *perf.PerfCollector
 }
 
 func NewPerfExporter(registry *prometheus.Registry, pids ...int) (*Exporter, error) {
@@ -30,12 +30,12 @@ func NewPerfExporter(registry *prometheus.Registry, pids ...int) (*Exporter, err
 	}
 
 	exporter := &Exporter{
-		registry:  registry,
-		pids:      pids,
+		registry: registry,
+		pids:     pids,
 	}
 
 	exporter.totalScrapes = prometheus.NewCounter(prometheus.CounterOpts{
-        Namespace: "perf",
+		Namespace: "perf",
 		Name:      "exporter_scrapes_total",
 		Help:      "Current total metric scrapes.",
 	})
@@ -47,12 +47,12 @@ func NewPerfExporter(registry *prometheus.Registry, pids ...int) (*Exporter, err
 		exporter.registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError},
 	))
 
-    exporter.perfCollector = perf.NewPerfCollector()
-    exporter.registry.MustRegister(exporter.perfCollector)
-    
-    for _, pid := range pids {
-        go exporter.perfCollector.StartPerfStatProcessBlocking(pid)
-    }
+	exporter.perfCollector = perf.NewPerfCollector()
+	exporter.registry.MustRegister(exporter.perfCollector)
+
+	for _, pid := range pids {
+		go exporter.perfCollector.StartPerfStatProcessBlocking(pid)
+	}
 
 	return exporter, nil
 }

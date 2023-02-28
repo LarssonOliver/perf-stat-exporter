@@ -94,16 +94,16 @@ func (pf *PerfCollector) Describe(descChan chan<- *prometheus.Desc) {
 	pf.RLock()
 	defer pf.RUnlock()
 
-    pf.taskClockCounter.Describe(descChan)
-    pf.contextSwitchesCounter.Describe(descChan)
+	pf.taskClockCounter.Describe(descChan)
+	pf.contextSwitchesCounter.Describe(descChan)
 	pf.cpuMigrationsCounter.Describe(descChan)
 	pf.pageFaultCounter.Describe(descChan)
-    pf.cacheMissesCounter.Describe(descChan)
-    pf.cacheReferencesCounter.Describe(descChan)
-    pf.cyclesCounter.Describe(descChan)
-    pf.instructionsCounter.Describe(descChan)
-    pf.branchesCounter.Describe(descChan)
-    pf.branchMissesCounter.Describe(descChan)
+	pf.cacheMissesCounter.Describe(descChan)
+	pf.cacheReferencesCounter.Describe(descChan)
+	pf.cyclesCounter.Describe(descChan)
+	pf.instructionsCounter.Describe(descChan)
+	pf.branchesCounter.Describe(descChan)
+	pf.branchMissesCounter.Describe(descChan)
 }
 
 func (pf *PerfCollector) Collect(metricChan chan<- prometheus.Metric) {
