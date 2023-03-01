@@ -18,13 +18,8 @@ var (
 func main() {
 	flag.Parse()
 
-	pids := []int{*pid}
-    if *pid != -1 {
-        pids = append(pids, -1)
-    }
-
 	registry := prometheus.NewRegistry()
-	exporter, _ := exporter.NewPerfExporter(registry, uint(*parseIntervalMs), pids...)
+	exporter, _ := exporter.NewPerfExporter(registry, uint(*parseIntervalMs), *pid)
 
 	fmt.Println("Serving metrics at :8080/metrics")
 	fmt.Println(http.ListenAndServe(":8080", exporter))
