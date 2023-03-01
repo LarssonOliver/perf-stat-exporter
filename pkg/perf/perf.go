@@ -28,11 +28,16 @@ func (pf *PerfCollector) StartPerfStatProcessBlocking(pid int, parseIntervalMs u
 
 	args := []string{
 		"stat",
-		fmt.Sprintf("--pid=%d", pid),
 		fmt.Sprintf("--field-separator=%s", fieldSeparator),
 		fmt.Sprintf("--interval-print=%d", parseIntervalMs),
 		fmt.Sprintf("--event=%s", strings.Join(statFields, ",")),
 	}
+
+	if pid < 0 {
+        args = append(args, "--all-cpus")
+	} else {
+		args = append(args, fmt.Sprintf("--pid=%d", pid))
+    }
 
 	cmd := exec.Command("perf", args...)
 
@@ -70,6 +75,10 @@ func (pf *PerfCollector) parsePerfStatOutput(pid int, perfOutputLine string) {
 	}
 
 	labels := prometheus.Labels{"pid": strconv.FormatInt(int64(pid), 10)}
+
+    if pid < 0 {
+        labels["pid"] = "all-cpus"
+    }
 
 	pf.Lock()
 	defer pf.Unlock()

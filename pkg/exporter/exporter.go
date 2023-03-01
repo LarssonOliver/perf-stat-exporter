@@ -49,7 +49,7 @@ func NewPerfExporter(registry *prometheus.Registry, parseIntervalMs uint,  pids 
 
 	exporter.perfCollector = perf.NewPerfCollector()
 	exporter.registry.MustRegister(exporter.perfCollector)
-
+    
 	for _, pid := range pids {
 		go exporter.perfCollector.StartPerfStatProcessBlocking(pid, parseIntervalMs)
 	}

@@ -11,19 +11,20 @@ import (
 )
 
 var (
-	pid             = flag.Int("pid", 0, "PID of process to observe.")
+	pid             = flag.Int("pid", -1, "PID of process to observe, -1 observes all processes.")
 	parseIntervalMs = flag.Uint("interval", 10_000, "perf-stat scraping interval in ms.")
 )
 
 func main() {
 	flag.Parse()
-	if *pid < 1 {
-		fmt.Println("A valid -pid is required, exiting...")
-		os.Exit(1)
-	}
+
+	pids := []int{*pid}
+    if *pid != -1 {
+        pids = append(pids, -1)
+    }
 
 	registry := prometheus.NewRegistry()
-	exporter, _ := exporter.NewPerfExporter(registry, uint(*parseIntervalMs), *pid)
+	exporter, _ := exporter.NewPerfExporter(registry, uint(*parseIntervalMs), pids...)
 
 	fmt.Println("Serving metrics at :8080/metrics")
 	fmt.Println(http.ListenAndServe(":8080", exporter))
