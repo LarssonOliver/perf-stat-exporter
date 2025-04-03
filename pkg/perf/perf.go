@@ -50,10 +50,10 @@ func (pf *PerfCollector) StartPerfStatProcessBlocking(pid int, parseIntervalMs u
 	}
 
 	if pid < 0 {
-        args = append(args, "--all-cpus")
+		args = append(args, "--all-cpus")
 	} else {
 		args = append(args, fmt.Sprintf("--pid=%d", pid))
-    }
+	}
 
 	cmd := exec.Command("perf", args...)
 
@@ -92,9 +92,9 @@ func (pf *PerfCollector) parsePerfStatOutput(pid int, perfOutputLine string) {
 
 	labels := prometheus.Labels{"pid": strconv.FormatInt(int64(pid), 10)}
 
-    if pid < 0 {
-        labels["pid"] = "all-cpus"
-    }
+	if pid < 0 {
+		labels["pid"] = "all-cpus"
+	}
 
 	pf.Lock()
 	defer pf.Unlock()
