@@ -23,3 +23,7 @@ make
 
 This produces `./bin/perf-stat-exporter`.
 
+## License
+
+This project is licensed under the Apache-2.0 license. Check [LICENSE](./LICENSE) for more information.
+
